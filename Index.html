@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TapSwap Clone</title>
+    <style>
+        :root {
+            --primary-bg: #1a1a2e; /* Dark blue/purple */
+            --secondary-bg: #24243e; /* Slightly lighter */
+            --accent-color: #f4a261; /* Orange/Yellow accent */
+            --text-color: #e0e0e0;
+            --highlight-color: #e76f51; /* Brighter orange for emphasis */
+            --dog-image-url: 'https://img.icons8.com/plasticine/100/dog.png'; /* Placeholder dog image */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden; /* Prevents scrolling of the body itself */
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px; /* Typical mobile screen width */
+            height: 100%;
+            max-height: 800px; /* Typical mobile screen height */
+            background-color: var(--secondary-bg);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Important for page content scroll */
+        }
+
+        .page-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto; /* Allows content within a page to scroll */
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--primary-bg);
+            padding: 10px 0;
+            border-top: 1px solid var(--accent-color);
+            flex-shrink: 0; /* Prevents nav from shrinking */
+        }
+
+        .nav-button {
+            background-color: transparent;
+            color: var(--text-color);
+            border: none;
+            padding: 10px 15px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+        .nav-button:hover, .nav-button.active {
+            color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+        .nav-button svg {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+            fill: currentColor;
+        }
+
+        /* Tap Page */
+        #tap-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around; /* Pushes elements to top/bottom */
+            text-align: center;
+            height: 100%; /* Make tap page take full available height */
+        }
+
+        #dog-container {
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+ */
+            padding: 20px;
+            margin-top: 20px; /* Add some space from the top */
+        }
+
+        #dog-image {
+            width: 150px;
+            height: 150px;
+            background-image: var(--dog-image-url);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transition: transform 0.1s ease-out;
+        }
+
+        #dog-image.tapped {
+            transform: scale(0.9);
+        }
+
+        .point-float {
+            position: absolute;
+            font-size: 24px;
+            color: var(--accent-color);
+            animation: floatUp 1s ease-out forwards;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
+
+        #points-display {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-top: 10px;
+        }
+
+        #energy-bar-container {
+            width: 80%;
+            background-color: var(--primary-bg);
+            border-radius: 10px;
+            padding: 5px;
+            margin-top: 20px;
+            margin-bottom: 20px; /* Add space before bottom nav */
+        }
+
+        #energy-bar {
+            height: 20px;
+            background-color: var(--highlight-color);
+            border-radius: 5px;
+            width: 100%; /* Will be set by JS */
+            transition: width 0.2s ease-in-out;
+            text-align: center;
+            line-height: 20px;
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Profile Page */
+        .profile-info {
+            margin-bottom: 15px;
+        }
+        .profile-info strong {
+            color: var(--accent-color);
+        }
+        .profile-info input[type="text"] {
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            border: 1px solid var(--accent-color);
+            padding: 8px;
+            border-radius: 5px;
+            width: calc(100% - 18px);
+        }
+
+        /* Task Page */
+        .task-item {
+            background-color: var(--primary-bg);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .task-item p {
+            margin: 0;
+        }
+        .task-item button {
+            background-color: var(--accent-color);
+            color: var(--primary-bg);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .task-item button:disabled {
+            background-color: #555;
+            color: #aaa;
+            cursor: not-allowed;
+        }
+
+        /* Withdraw Page */
+        .withdraw-form label {
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            color: var(--accent-color);
+        }
+        .withdraw-form input, .withdraw-form select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--accent-color);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+        }
+        .withdraw-form button {
+            background-color: var(--highlight-color);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        #payment-details > div {
+            margin-bottom: 10px;
+        }
+        .hidden { display: none; }
+
+        h2 {
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        /* For Telegram-like username display */
+        .username-header {
+            text-align: center;
+            padding: 10px;
+            background-color: var(--primary-bg);
+            color: var(--accent-color);
+            font-weight: bold;
+            flex-shrink: 0; /* Prevents header from shrinking */
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="username-header" id="telegram-username-header">Loading User...</div>
+
+        <div class="page-content">
+            <!-- Profile Page -->
+            <div id="profile-page" class="page">
+                <h2>Profile</h2>
+                <div class="profile-info">
+                    <strong>Name:</strong> <span id="profile-name"></span>
+                </div>
+                <div class="profile-info">
+                    <strong>Points:</strong> <span id="profile-points"></span>
+                </div>
+                <div class="profile-info">
+                    <strong>Joined:</strong> <span id="profile-joined"></span>
+                </div>
+                <div class="profile-info">
+                    <strong>Referral Link:</strong>
+                    <input type="text" id="profile-referral" readonly>
+                    <button id="copy-referral-btn" style="padding: 8px; margin-top: 5px; background-color: var(--accent-color); color: var(--primary-bg); border: none; border-radius: 5px; cursor: pointer;">Copy</button>
+                </div>
+            </div>
+
+            <!-- Tap Page -->
+            <div id="tap-page" class="page">
+                <!-- Content is positioned by flexbox in #tap-page -->
+                <div> <!-- Top group: points -->
+                    <p id="points-display">0</p>
+                </div>
+                
+                <div id="dog-container"> <!-- Middle group: dog -->
+                    <div id="dog-image"></div>
+                </div>
+
+                <div> <!-- Bottom group: energy -->
+                    <p style="font-size: 14px; margin-bottom: 5px;">Energy: <span id="energy-value">100</span>/100</p>
+                    <div id="energy-bar-container">
+                        <div id="energy-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Page -->
+            <div id="task-page" class="page">
+                <h2>Tasks</h2>
+                <div id="tasks-list">
+                    <!-- Tasks will be rendered here by JS -->
+                </div>
+            </div>
+
+            <!-- Withdraw Page -->
+            <div id="withdraw-page" class="page">
+                <h2>Withdraw Points</h2>
+                <form id="withdraw-form" class="withdraw-form">
+                    <label for="withdraw-amount">Amount to Withdraw:</label>
+                    <input type="number" id="withdraw-amount" name="amount" placeholder="Enter amount" required>
+
+                    <label for="payment-method">Payment Method:</label>
+                    <select id="payment-method" name="method">
+                        <option value="paypal">PayPal</option>
+                        <option value="wire">Wire Transfer</option>
+                        <option value="crypto">Crypto (Placeholder)</option>
+                    </select>
+
+                    <div id="payment-details">
+                        <div id="paypal-details">
+                            <label for="paypal-email">PayPal Email:</label>
+                            <input type="email" id="paypal-email" name="paypal_email" placeholder="your.email@example.com">
+                        </div>
+                        <div id="wire-details" class="hidden">
+                            <label for="bank-name">Bank Name:</label>
+                            <input type="text" id="bank-name" name="bank_name" placeholder="Bank Name">
+                            <label for="account-number">Account Number:</label>
+                            <input type="text" id="account-number" name="account_number" placeholder="Account Number">
+                            <label for="routing-number">Routing Number:</label>
+                            <input type="text" id="routing-number" name="routing_number" placeholder="Routing Number">
+                        </div>
+                         <div id="crypto-details" class="hidden">
+                            <label for="crypto-address">Crypto Wallet Address (e.g., BTC):</label>
+                            <input type="text" id="crypto-address" name="crypto_address" placeholder="Your Wallet Address">
+                        </div>
+                    </div>
+
+                    <button type="submit">Withdraw to Localhost</button>
+                </form>
+                <p id="withdraw-status" style="text-align:center; margin-top:15px;"></p>
+            </div>
+        </div>
+
+        <nav class="bottom-nav">
+            <button class="nav-button" data-page="profile-page">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                Profile
+            </button>
+            <button class="nav-button active" data-page="tap-page">
+                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg> <!-- Placeholder, could be a paw icon -->
+                Tap
+            </button>
+            <button class="nav-button" data-page="task-page">
+                <svg viewBox="0 0 24 24"><path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/></svg>
+                Task
+            </button>
+            <button class="nav-button" data-page="withdraw-page">
+                <svg viewBox="0 0 24 24"><path d="M5 4v2h14V4H5zm0 10h4v6h6v-6h4l-7-7-7 7z"/></svg>
+                Withdraw
+            </button>
+        </nav>
+    </div>
+
+    <script>
+        const DB_KEY = 'tapSwapUserData_v2'; // Changed key to avoid conflicts with old versions
+        const ENERGY_REGEN_RATE = 1; // Energy per second
+        const ENERGY_REGEN_INTERVAL = 1000; // Check every second
+        const MAX_ENERGY = 100;
+        const POINTS_PER_TAP = 1; // Or could be dynamic
+
+        let userData = {
+            username: 'TelegramUser' + Math.floor(Math.random() * 1000),
+            points: 0,
+            energy: MAX_ENERGY,
+            lastEnergyUpdate: Date.now(),
+            joinedDate: new Date().toISOString(),
+            referralCode: generateReferralCode(),
+            completedTasks: [] // Array of task IDs
+        };
+
+        const tasks = [
+            { id: 'yt_video_1', title: 'Watch YouTube Video 1', points: 1000, url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+            { id: 'yt_video_2', title: 'Watch YouTube Video 2', points: 1000, url: 'https://www.youtube.com/watch?v=L_jWHffIx5E' },
+            { id: 'yt_video_3', title: 'Watch YouTube Video 3', points: 1000, url: 'https://www.youtube.com/watch?v=3JZ_D3ELwOQ' },
+            { id: 'yt_video_4', title: 'Watch YouTube Video 4', points: 1000, url: 'https://www.youtube.com/watch?v=fNFzfwLM72c' },
+            { id: 'yt_video_5', title: 'Watch YouTube Video 5', points: 1000, url: 'https://www.youtube.com/watch?v=V-_O7nl0Ii0' },
+            { id: 'social_follow_1', title: 'Follow on X (Twitter)', points: 500, url: 'https://twitter.com' },
+        ];
+
+        // DOM Elements
+        const pages = document.querySelectorAll('.page');
+        const navButtons = document.querySelectorAll('.nav-button');
+        const dogContainer = document.getElementById('dog-container');
+        const dogImage = document.getElementById('dog-image');
+        const pointsDisplay = document.getElementById('points-display');
+        const energyBar = document.getElementById('energy-bar');
+        const energyValueDisplay = document.getElementById('energy-value');
+
+        const profileName = document.getElementById('profile-name');
+        const profilePoints = document.getElementById('profile-points');
+        const profileJoined = document.getElementById('profile-joined');
+        const profileReferral = document.getElementById('profile-referral');
+        const copyReferralBtn = document.getElementById('copy-referral-btn');
+        const telegramUsernameHeader = document.getElementById('telegram-username-header');
+
+        const tasksListContainer = document.getElementById('tasks-list');
+        const withdrawForm = document.getElementById('withdraw-form');
+        const withdrawStatus = document.getElementById('withdraw-status');
+        const paymentMethodSelect = document.getElementById('payment-method');
+        const paymentDetailsDivs = {
+            paypal: document.getElementById('paypal-details'),
+            wire: document.getElementById('wire-details'),
+            crypto: document.getElementById('crypto-details')
+        };
+
+        function loadData() {
+            const storedData = localStorage.getItem(DB_KEY);
+            if (storedData) {
+                const parsedData = JSON.parse(storedData);
+                // Merge to ensure new properties are added if the stored structure is old
+                userData = { ...userData, ...parsedData };
+                // Ensure lastEnergyUpdate is a number (Date.now())
+                if (typeof userData.lastEnergyUpdate === 'string') {
+                    userData.lastEnergyUpdate = new Date(userData.lastEnergyUpdate).getTime();
+                }
+                if (!userData.lastEnergyUpdate || isNaN(userData.lastEnergyUpdate)) {
+                    userData.lastEnergyUpdate = Date.now();
+                }
+                // Initialize completedTasks if it's missing
+                if (!userData.completedTasks) {
+                    userData.completedTasks = [];
+                }
+
+            } else {
+                // First time load, prompt for username or use default
+                const name = prompt("Enter your Telegram Username (or leave blank for default):", userData.username);
+                if (name && name.trim() !== "") {
+                    userData.username = name.trim();
+                }
+            }
+            saveData(); // Save potentially updated/initialized data
+        }
+
+        function saveData() {
+            localStorage.setItem(DB_KEY, JSON.stringify(userData));
+        }
+
+        function generateReferralCode() {
+            return 'REF-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+        }
+
+        function showPage(pageId) {
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+
+            navButtons.forEach(button => {
+                button.classList.toggle('active', button.dataset.page === pageId);
+            });
+            // Update profile/tap displays when their pages are shown
+            if (pageId === 'profile-page') updateProfileDisplay();
+            if (pageId === 'tap-page') updateTapPageDisplay(); // For initial load of tap page
+        }
+
+        function updatePointsDisplay() {
+            pointsDisplay.textContent = userData.points.toLocaleString();
+            if (profilePoints) profilePoints.textContent = userData.points.toLocaleString();
+        }
+
+        function updateEnergyDisplay() {
+            const percentage = (userData.energy / MAX_ENERGY) * 100;
+            energyBar.style.width = `${percentage}%`;
+            energyBar.textContent = `${Math.floor(userData.energy)}/${MAX_ENERGY}`;
+            energyValueDisplay.textContent = Math.floor(userData.energy);
+        }
+        
+        function updateTapPageDisplay() {
+            updatePointsDisplay();
+            updateEnergyDisplay();
+        }
+
+        function handleTap(event) {
+            if (userData.energy >= POINTS_PER_TAP) {
+                userData.points += POINTS_PER_TAP;
+                userData.energy -= POINTS_PER_TAP;
+                userData.lastEnergyUpdate = Date.now(); // Reset timer on tap for fairness if desired
+                
+                updatePointsDisplay();
+                updateEnergyDisplay();
+                saveData();
+
+                // Visual feedback for tap
+                dogImage.classList.add('tapped');
+                setTimeout(() => dogImage.classList.remove('tapped'), 100);
+
+                // Show floating +1
+                const floatText = document.createElement('div');
+                floatText.classList.add('point-float');
+                floatText.textContent = `+${POINTS_PER_TAP}`;
+                
+                // Position relative to the dog container
+                const rect = dogContainer.getBoundingClientRect();
+                const appRect = document.querySelector('.app-container').getBoundingClientRect();
+
+                // Calculate position within the app-container for absolute positioning
+                floatText.style.left = `${event.clientX - appRect.left - 15}px`; // Adjust for text width
+                floatText.style.top = `${event.clientY - appRect.top - 30}px`;  // Adjust for text height and desired offset
+                
+                document.querySelector('.page-content').appendChild(floatText); // Append to scrollable area
+                setTimeout(() => floatText.remove(), 1000);
+
+            } else {
+                // Optional: visual feedback for no energy
+                // console.log("Not enough energy!");
+            }
+        }
+
+        function regenerateEnergy() {
+            const now = Date.now();
+            const timeDiffSeconds = (now - userData.lastEnergyUpdate) / 1000;
+            
+            if (userData.energy < MAX_ENERGY) {
+                const energyToRegen = timeDiffSeconds * ENERGY_REGEN_RATE;
+                userData.energy = Math.min(MAX_ENERGY, userData.energy + energyToRegen);
+                userData.lastEnergyUpdate = now;
+                updateEnergyDisplay();
+                saveData();
+            } else {
+                // If energy is already full, just update the timestamp so it doesn't accumulate "missed" time
+                 userData.lastEnergyUpdate = now;
+            }
+        }
+
+        function updateProfileDisplay() {
+            telegramUsernameHeader.textContent = userData.username;
+            profileName.textContent = userData.username;
+            profilePoints.textContent = userData.points.toLocaleString();
+            profileJoined.textContent = new Date(userData.joinedDate).toLocaleDateString();
+            profileReferral.value = `${window.location.origin}${window.location.pathname}?ref=${userData.referralCode}`;
+        }
+
+        function renderTasks() {
+            tasksListContainer.innerHTML = ''; // Clear existing tasks
+            tasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.classList.add('task-item');
+                
+                const taskInfo = document.createElement('div');
+                const taskTitle = document.createElement('p');
+                taskTitle.textContent = task.title;
+                const taskPoints = document.createElement('p');
+                taskPoints.textContent = `+${task.points} Points`;
+                taskPoints.style.color = 'var(--accent-color)';
+                taskPoints.style.fontSize = '0.9em';
+                taskInfo.appendChild(taskTitle);
+                taskInfo.appendChild(taskPoints);
+
+                const taskButton = document.createElement('button');
+                if (userData.completedTasks.includes(task.id)) {
+                    taskButton.textContent = 'Claimed';
+                    taskButton.disabled = true;
+                } else {
+                    taskButton.textContent = 'Go';
+                    taskButton.onclick = () => completeTask(task);
+                }
+                
+                taskItem.appendChild(taskInfo);
+                taskItem.appendChild(taskButton);
+                tasksListContainer.appendChild(taskItem);
+            });
+        }
+
+        function completeTask(task) {
+            if (!userData.completedTasks.includes(task.id)) {
+                // Simulate opening task URL
+                alert(`Simulating task: ${task.title}\nOpening: ${task.url}\n\nClick OK to mark as complete and claim ${task.points} points.`);
+                // In a real app, you'd open the URL and have a callback or check mechanism
+                // window.open(task.url, '_blank'); 
+
+                userData.points += task.points;
+                userData.completedTasks.push(task.id);
+                saveData();
+                updatePointsDisplay();
+                renderTasks(); // Re-render to update button state
+                alert(`Task "${task.title}" completed! You earned ${task.points} points.`);
+            }
+        }
+
+        function handleWithdraw(event) {
+            event.preventDefault();
+            const amount = parseInt(document.getElementById('withdraw-amount').value);
+            const method = paymentMethodSelect.value;
+
+            withdrawStatus.textContent = ''; // Clear previous status
+
+            if (isNaN(amount) || amount <= 0) {
+                withdrawStatus.textContent = 'Please enter a valid amount.';
+                withdrawStatus.style.color = 'red';
+                return;
+            }
+
+            if (amount > userData.points) {
+                withdrawStatus.textContent = 'Insufficient points.';
+                withdrawStatus.style.color = 'red';
+                return;
+            }
+
+            let details = `Amount: ${amount}, Method: ${method}`;
+            if (method === 'paypal') {
+                const email = document.getElementById('paypal-email').value;
+                if (!email || !email.includes('@')) {
+                    withdrawStatus.textContent = 'Please enter a valid PayPal email.';
+                    withdrawStatus.style.color = 'red';
+                    return;
+                }
+                details += `, PayPal Email: ${email}`;
+            } else if (method === 'wire') {
+                const bankName = document.getElementById('bank-name').value;
+                const accountNumber = document.getElementById('account-number').value;
+                // Add more validation if needed
+                if (!bankName || !accountNumber) {
+                    withdrawStatus.textContent = 'Please fill in all wire transfer details.';
+                    withdrawStatus.style.color = 'red';
+                    return;
+                }
+                details += `, Bank: ${bankName}, Account: ${accountNumber}`;
+            } else if (method === 'crypto') {
+                const cryptoAddress = document.getElementById('crypto-address').value;
+                if (!cryptoAddress || cryptoAddress.length < 20) { // Basic check
+                    withdrawStatus.textContent = 'Please enter a valid crypto address.';
+                    withdrawStatus.style.color = 'red';
+                    return;
+                }
+                details += `, Crypto Address: ${cryptoAddress}`;
+            }
+
+
+            // Simulate withdrawal to "localhost"
+            userData.points -= amount;
+            saveData();
+            updatePointsDisplay(); // Update points display across the app
+
+            console.log('Withdrawal Processed (Simulated):', details);
+            withdrawStatus.textContent = `Withdrawal of ${amount} points via ${method} processed (simulated). Check console for details.`;
+            withdrawStatus.style.color = 'var(--accent-color)';
+            
+            withdrawForm.reset(); // Clear form
+            updatePaymentDetailsVisibility(); // Reset payment details visibility
+            if (profilePoints) profilePoints.textContent = userData.points.toLocaleString(); // Update profile page if visible
+        }
+        
+        function updatePaymentDetailsVisibility() {
+            const selectedMethod = paymentMethodSelect.value;
+            Object.keys(paymentDetailsDivs).forEach(key => {
+                paymentDetailsDivs[key].classList.toggle('hidden', key !== selectedMethod);
+            });
+        }
+
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData(); // Load data first
+
+            // Check for referral in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode) {
+                alert(`You were referred by ${refCode}! (This is a placeholder, no bonus applied yet)`);
+                // You could add logic here to give a bonus if it's a new user and valid ref code
+            }
+
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => showPage(button.dataset.page));
+            });
+
+            dogContainer.addEventListener('click', handleTap);
+            // For touch devices, 'touchstart' can feel more responsive
+            dogContainer.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent potential double tap zoom or other default touch behaviors
+                handleTap(e.touches[0] || e); // Pass touch event coordinates
+            }, { passive: false });
+
+
+            if (copyReferralBtn) {
+                copyReferralBtn.addEventListener('click', () => {
+                    profileReferral.select();
+                    profileReferral.setSelectionRange(0, 99999); // For mobile devices
+                    try {
+                        document.execCommand('copy');
+                        alert('Referral link copied to clipboard!');
+                    } catch (err) {
+                        alert('Failed to copy. Please copy manually.');
+                    }
+                    window.getSelection().removeAllRanges(); // Deselect
+                });
+            }
+
+            withdrawForm.addEventListener('submit', handleWithdraw);
+            paymentMethodSelect.addEventListener('change', updatePaymentDetailsVisibility);
+
+            // Initial setup
+            updateProfileDisplay();
+            updateTapPageDisplay();
+            renderTasks();
+            updatePaymentDetailsVisibility(); // Set initial state for payment details
+            showPage('tap-page'); // Default page
+
+            // Start energy regeneration
+            setInterval(regenerateEnergy, ENERGY_REGEN_INTERVAL);
+            regenerateEnergy(); // Initial call to catch up on offline regeneration
+        });
+
+    </script>
+</body>
+</html>
